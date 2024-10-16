@@ -9,10 +9,6 @@ from dotenv import load_dotenv
 from langchain.chat_models import ChatOpenAI
 import os
 
-# Ensure the Spacy model is downloaded
-from spacy.cli import download
-download("en_core_web_sm")
-
 # Load environment variables from .env file
 load_dotenv()
 
