@@ -8,9 +8,18 @@ from langchain.tools.retriever import create_retriever_tool
 from dotenv import load_dotenv
 from langchain.chat_models import ChatOpenAI
 import os
+import spacy
+from spacy.cli import download
 
-# Load environment variables from .env file
-load_dotenv()
+# Ensure SpaCy model is downloaded at runtime
+try:
+    nlp = spacy.load("en_core_web_sm")
+except:
+    download("en_core_web_sm")
+    nlp = spacy.load("en_core_web_sm")
+
+# Initialize Spacy Embeddings after ensuring the model is available
+embeddings = SpacyEmbeddings(model_name="en_core_web_sm")
 
 # Function to read the uploaded PDF
 def pdf_read(pdf_doc):
@@ -29,7 +38,6 @@ def get_chunks(text):
 
 # Function to create and store FAISS vector store from text chunks
 def vector_store(text_chunks):
-    embeddings = SpacyEmbeddings(model_name="en_core_web_sm")  # Lazy initialization
     vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
     vector_store.save_local("faiss_db")
 
@@ -56,7 +64,6 @@ def get_conversational_chain(tools, ques):
 
 # Function to handle user input and retrieval
 def user_input(user_question):
-    embeddings = SpacyEmbeddings(model_name="en_core_web_sm")  # Lazy initialization
     new_db = FAISS.load_local("faiss_db", embeddings, allow_dangerous_deserialization=True)
     retriever = new_db.as_retriever()
     retrieval_chain = create_retriever_tool(retriever, "pdf_extractor", "This tool extracts answers from the PDF.")
