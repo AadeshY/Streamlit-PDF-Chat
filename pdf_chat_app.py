@@ -12,9 +12,6 @@ import os
 # Load environment variables from .env file
 load_dotenv()
 
-# Initialize Spacy Embeddings model
-embeddings = SpacyEmbeddings(model_name="en_core_web_sm")
-
 # Function to read the uploaded PDF
 def pdf_read(pdf_doc):
     text = ""
@@ -32,6 +29,7 @@ def get_chunks(text):
 
 # Function to create and store FAISS vector store from text chunks
 def vector_store(text_chunks):
+    embeddings = SpacyEmbeddings(model_name="en_core_web_sm")  # Lazy initialization
     vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
     vector_store.save_local("faiss_db")
 
@@ -58,6 +56,7 @@ def get_conversational_chain(tools, ques):
 
 # Function to handle user input and retrieval
 def user_input(user_question):
+    embeddings = SpacyEmbeddings(model_name="en_core_web_sm")  # Lazy initialization
     new_db = FAISS.load_local("faiss_db", embeddings, allow_dangerous_deserialization=True)
     retriever = new_db.as_retriever()
     retrieval_chain = create_retriever_tool(retriever, "pdf_extractor", "This tool extracts answers from the PDF.")
@@ -83,7 +82,7 @@ def main():
                 with st.spinner("Processing..."):
                     raw_text = pdf_read(pdf_doc)
                     text_chunks = get_chunks(raw_text)
-                    vector_store(text_chunks)
+                    vector_store(text_chunks)  # Initialize embeddings and vector store only after PDF is uploaded
                     st.success("Done!")
             else:
                 st.error("Please upload at least one PDF file.")
