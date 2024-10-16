@@ -8,17 +8,11 @@ from langchain.tools.retriever import create_retriever_tool
 from dotenv import load_dotenv
 from langchain.chat_models import ChatOpenAI
 import os
-import spacy
-from spacy.cli import download
 
-# Ensure SpaCy model is downloaded at runtime
-try:
-    nlp = spacy.load("en_core_web_sm")
-except:
-    download("en_core_web_sm")
-    nlp = spacy.load("en_core_web_sm")
+# Load environment variables from .env file
+load_dotenv()
 
-# Initialize Spacy Embeddings after ensuring the model is available
+# Initialize embeddings without runtime download
 embeddings = SpacyEmbeddings(model_name="en_core_web_sm")
 
 # Function to read the uploaded PDF
@@ -44,7 +38,7 @@ def vector_store(text_chunks):
 # Function to run the conversation chain with the retrieved data
 def get_conversational_chain(tools, ques):
     # Use OpenAI model (make sure the API key is set in environment variables)
-    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0, api_key=os.getenv("OPENAI_API_KEY"))
+    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
     
     # Set up prompt for the chatbot
     prompt = ChatPromptTemplate.from_messages(
@@ -60,7 +54,7 @@ def get_conversational_chain(tools, ques):
     
     # Process the question and return the response
     response = agent_executor.invoke({"input": ques})
-    st.write("Reply: ", response['output'])
+    st.write("Reply:", response['output'])
 
 # Function to handle user input and retrieval
 def user_input(user_question):
@@ -74,12 +68,6 @@ def main():
     st.set_page_config(page_title="Chat PDF")
     st.header("RAG-based Chat with PDF")
 
-    # User input section
-    user_question = st.text_input("Ask a question from the PDF files")
-
-    if user_question:
-        user_input(user_question)
-
     # Sidebar for uploading PDFs
     with st.sidebar:
         st.title("Menu:")
@@ -89,10 +77,16 @@ def main():
                 with st.spinner("Processing..."):
                     raw_text = pdf_read(pdf_doc)
                     text_chunks = get_chunks(raw_text)
-                    vector_store(text_chunks)  # Initialize embeddings and vector store only after PDF is uploaded
-                    st.success("Done!")
+                    vector_store(text_chunks)
+                    st.success("Done! You can now ask questions.")
             else:
                 st.error("Please upload at least one PDF file.")
+
+    # User input section
+    user_question = st.text_input("Ask a question from the PDF files")
+
+    if user_question:
+        user_input(user_question)
 
 # Run the app
 if __name__ == "__main__":
